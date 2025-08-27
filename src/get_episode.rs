@@ -1,0 +1,207 @@
+use std::ffi::{CString, CStr};
+use std::os::raw::c_char;
+
+
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, value};
+use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
+use visdom::Vis;
+use regex::Regex;
+use visdom::types::{BoxDynError, BoxDynElement};
+use std::collections::hash_map;
+use tracing::{info,error};
+
+
+fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
+    let dom = Vis::load(html)?;
+
+    // 1. meta[name="_gg_fb"]
+    if let Some(content) = dom.find(r#"meta[name="_gg_fb"]"#).attr("content") {
+        return Ok(Some(content.to_string()));
+    }
+
+    // 2. script[nonce]
+    if let Some(nonce) = dom.find("script[nonce]").attr("nonce") {
+        return Ok(Some(nonce.to_string()));
+    }
+
+    // 3. div[data-dpi]
+    if let Some(dpi) = dom.find("div[data-dpi]").attr("data-dpi") {
+        return Ok(Some(dpi.to_string()));
+    }
+
+    // 4. script containing 'window._xy_ws'
+    let token = dom
+        .find("script")
+        .map(|_idx: usize, el: &BoxDynElement| {
+            let html = el.text();
+            if html.contains("window._xy_ws") {
+                html.split('"').nth(1).map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .into_iter()
+        .flatten()
+        .next();
+    if let Some(t) = token {
+        return Ok(Some(t));
+    }
+
+    // 5. comment starting with "_is_th:"
+    let comment_token = Regex::new(r#"<!--\s*_is_th:\s*(.*?)\s*-->"#)
+        .ok()
+        .and_then(|re| {
+            re.captures_iter(html)
+                .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+                .next()
+        });
+    if let Some(t) = comment_token {
+        return Ok(Some(t));
+    }
+
+    // 6. script containing window._lk_db
+    let js_token = Regex::new(
+        r#"window\._lk_db\s*=\s*\{\s*x:\s*"([^"]+)",\s*y:\s*"([^"]+)",\s*z:\s*"([^"]+)"\s*\}"#
+    ).ok()
+        .and_then(|re| {
+            re.captures(html).map(|caps| {
+                let x = caps.get(1)?.as_str();
+                let y = caps.get(2)?.as_str();
+                let z = caps.get(3)?.as_str();
+                Some(format!("{}{}{}", x, y, z))
+            }).flatten()
+        });
+
+
+    if let Some(t) = js_token {
+        return Ok(Some(t));
+    }
+
+    Ok(None)
+}
+
+#[derive(Serialize, Deserialize)]
+struct ReturnResultHeader {
+    host: String,
+    referer: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ReturnResult {
+    status: bool,
+    data: Value,
+    headers: ReturnResultHeader 
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn new(server_id_ptr: *const c_char) -> *const c_char {
+    let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
+    let client = reqwest::blocking::Client::new();
+
+    let mut return_result = ReturnResult {
+        status: true,
+        data: Value::Null,
+        headers: ReturnResultHeader {
+            host: String::from("megacloud.blog"),
+            referer: String::from("https://megacloud.blog/"),
+        }
+    };
+
+    // Get forward episode id
+    let mut forward_server_id: Option<String> = None;
+    let mut headers = HeaderMap::new();
+    headers.insert(REFERER, HeaderValue::from_static("https://hianime.to/"));
+    headers.insert(HOST, HeaderValue::from_static("hianime.to"));
+    
+    let url = format!("https://hianime.to/ajax/v2/episode/sources?id={}", &server_id);
+    let res = client.get(url)
+        .headers(headers.clone())
+        .send().unwrap();
+
+    if res.status().is_success() {
+        let data = res.json::<Value>();
+        match data {
+            Ok(result) => {
+                forward_server_id = Some(result.get("link").unwrap().to_string()
+                    .split("/").last().unwrap().split("?").nth(0).unwrap().to_string());
+            }
+            _ => {
+                return_result.status = false;
+                error!("[Failed] Failed to get forward episode id.");
+            }
+        }
+    }
+
+
+    // ================================================
+
+
+
+    // Get html dom then extract token.
+    println!("Forward episode id: {:?}", forward_server_id.as_ref().clone());
+    let mut token: Option<String> = None;
+    if forward_server_id.is_some() {
+        let mut headers = HeaderMap::new();
+        let referer = HeaderValue::from_str(&return_result.headers.referer.clone());
+        let host = HeaderValue::from_str(&return_result.headers.host.clone());
+        headers.insert(REFERER, referer.unwrap());
+        headers.insert(HOST, host.unwrap());
+        
+        let url = format!("https://megacloud.blog/embed-2/v3/e-1/{}?k=1", forward_server_id.as_ref().unwrap());
+
+        let res = client.get(url)
+            .headers(headers.clone())
+            .send().unwrap();
+
+        if res.status().is_success() {
+            let body = res.text();
+            println!("Body: {}", body.as_ref().unwrap());
+            match extract_key_token(body.as_ref().unwrap()) {
+                Ok(Some(result)) => {
+                    token = Some(result);
+                }
+                _ => {
+                    return_result.status = false;
+                    
+                    error!("[Not Found] Failed to extract key token.");
+                }
+            }
+        }
+    }
+    // ================================================
+
+    // Get source info from generated token.
+    println!("Token: {:?}", token.clone());
+    if token.is_some() {
+        let mut headers = HeaderMap::new();
+        headers.insert(REFERER, HeaderValue::from_static("https://megacloud.blog/"));
+        headers.insert(HOST, HeaderValue::from_static("megacloud.blog"));
+        let url = format!("https://megacloud.blog/embed-2/v3/e-1/getSources?id={}&_k={}", forward_server_id.as_ref().unwrap(), &token.unwrap());
+        let res = client.get(url)
+        .headers(headers.clone())
+        .send().unwrap();
+
+        if res.status().is_success() {
+            let data = res.json::<Value>();
+            match data {
+                Ok(result) => {
+                    return_result.status = true;
+                    return_result.data = result;
+                }
+                _ => {
+                    return_result.status = false;
+                    error!("[Failed] Failed to get sources.");
+                }
+            }
+        }
+        
+    }
+
+    // ========================================
+    
+    let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
+    let result_ptr = result.as_ptr();
+    std::mem::forget(result); // prevent Rust from freeing it
+    return result_ptr;
+}

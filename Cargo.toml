@@ -1,0 +1,15 @@
+[package]
+name = "chlaty-hianime"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+regex = "1.11.2"
+reqwest = {version = "0.12.23", features = ["blocking", "json"]}
+serde = "1.0.219"
+serde_json = "1.0.143"
+tracing = "0.1.41"
+visdom = "1.0.3"
