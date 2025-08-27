@@ -2,7 +2,7 @@ name: Build DLL on Windows
 
 on:
   push:
-    branches: [main]
+    branches: [build]
   pull_request:
 
 jobs:

@@ -2,7 +2,7 @@ name: Build Shared Library on Linux
 
 on:
   push:
-    branches: [main]
+    branches: [build]
   pull_request:
 
 jobs:
