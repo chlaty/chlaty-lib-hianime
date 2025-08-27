@@ -8,7 +8,7 @@ mod tests {
     fn test_1() {
         unsafe {
             let episode_id = CString::new("1329879").expect("CString::new failed");
-            let get_watch_ptr = get_episode::new(episode_id.as_ptr());
+            let get_watch_ptr = get_episode::new(std::ptr::null());
             let result = CString::from_raw(get_watch_ptr as *mut c_char).into_string().unwrap();
             println!("{}", &result);
         }

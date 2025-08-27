@@ -90,23 +90,44 @@ struct ReturnResultHeader {
 #[derive(Serialize, Deserialize)]
 struct ReturnResult {
     status: bool,
+    message: String,
     data: Value,
     headers: ReturnResultHeader 
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn new(server_id_ptr: *const c_char) -> *const c_char {
-    let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
-    let client = reqwest::blocking::Client::new();
-
     let mut return_result = ReturnResult {
-        status: true,
+        status: false,
+        message: String::from(""),
         data: Value::Null,
         headers: ReturnResultHeader {
             host: String::from("megacloud.blog"),
             referer: String::from("https://megacloud.blog/"),
         }
     };
+
+    // Check argument before processing
+    let mut valid_argument: bool = true;
+    if server_id_ptr.is_null() {
+        return_result.message = String::from("'server_id' is required.");
+        valid_argument = false;
+    }
+
+    if !valid_argument {
+        let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
+        let result_ptr = result.as_ptr();
+        std::mem::forget(result); // prevent Rust from freeing it
+        return result_ptr;
+    }
+    // ================================================
+
+
+
+    let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
+    let client = reqwest::blocking::Client::new();
+
+    
 
     // Get forward episode id
     let mut forward_server_id: Option<String> = None;
