@@ -1,4 +1,4 @@
-name: Build on Linux
+name: Build Shared Library on Linux
 
 on:
   push:
@@ -18,5 +18,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build
+      - name: Build Shared Library
         run: cargo build --release
+
+      - name: Upload .so Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-so
+          path: target/release/lib*.so

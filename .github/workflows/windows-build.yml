@@ -1,4 +1,4 @@
-name: Build on Windows
+name: Build DLL on Windows
 
 on:
   push:
@@ -18,5 +18,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build
+      - name: Build DLL
         run: cargo build --release
+
+      - name: Upload DLL Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-dll
+          path: target/release/*.dll
