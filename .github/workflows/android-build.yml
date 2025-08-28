@@ -3,8 +3,7 @@ name: Build Android Shared Libraries
 on:
   push:
     branches: [build]
-  pull_request:
-    branches: [build]
+
 
 jobs:
   build-android:
