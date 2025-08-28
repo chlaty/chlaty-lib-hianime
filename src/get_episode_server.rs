@@ -1,16 +1,14 @@
+use std::collections::HashMap;
 use std::ffi::{CString, CStr};
 use std::os::raw::{c_char};
 
-
 use serde::{Deserialize, Serialize};
-use serde_json::{ from_str};
+use serde_json::{Value, from_str};
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
 use visdom::Vis;
-
 use urlencoding::encode;
 
-use crate::{SOURCE_HOST, SOURCE_REFERER};
-
+use crate::{ SOURCE_HOST, SOURCE_REFERER};
 
 
 
@@ -18,34 +16,31 @@ use crate::{SOURCE_HOST, SOURCE_REFERER};
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnData{
     id: String,
-    title: String,
-    cover: String
+    title: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnResult {
     status: bool,
     message: String,
-    data: Vec<ReturnData>,
+    data: HashMap<String, Vec<ReturnData>>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Arguments {
-    search: String,
-    page: isize
-
+    id: String
 }
 
-
 #[unsafe(no_mangle)]
-pub extern "C" fn search(
+pub extern "C" fn get_episode_server(
     arguments_ptr : *const c_char,
 ) -> *const c_char {
 
     let mut return_result = ReturnResult {
         status: false,
         message: String::from(""),
-        data: Vec::new(),
+        data: HashMap::new(),
+        
     };
 
     // Check argument before processing
@@ -56,16 +51,13 @@ pub extern "C" fn search(
     }
 
     let mut args: Arguments = Arguments { 
-        search: String::from(""),
-        page: 1
+        id: String::from("") 
     };
-
     if valid_arguments {
         unsafe { 
             match from_str::<Arguments>(&CStr::from_ptr(arguments_ptr as *mut c_char).to_string_lossy().into_owned()) {
                 Ok(result) => {
-                    args.search = result.search;
-                    args.page = result.page
+                    args.id = result.id
                 },
                 Err(e) => {
                     return_result.message = String::from(e.to_string());
@@ -78,63 +70,55 @@ pub extern "C" fn search(
 
     if valid_arguments {
 
-        let search_string = args.search;
-        let page_number = args.page;
+        let id = args.id;
 
         let client = reqwest::blocking::Client::new();
         let mut headers = HeaderMap::new();
         headers.insert(REFERER, HeaderValue::from_str(SOURCE_REFERER).unwrap());
         headers.insert(HOST, HeaderValue::from_str(SOURCE_HOST).unwrap());
 
-        let url = format!("https://{}/search?keyword={}&page={}", 
-            SOURCE_HOST, 
-            if search_string.trim().is_empty() { "+" } else { &encode(&search_string) }, 
-            encode(&page_number.to_string())
+        // https://hianime.to/ajax/v2/episode/servers?episodeId=141568
+        let url = format!("https://{}/ajax/v2/episode/servers?episodeId={}", 
+            SOURCE_HOST, encode(&id)
         );
         println!("url: {}", &url);
         let res = client.get(&url).headers(headers).send().unwrap();
         
         if res.status().is_success(){
-            let html = res.text().unwrap();
-            // println!("{}", &html);
-            let root = Vis::load(html).unwrap();
+            let data = res.json::<Value>().unwrap_or(Value::Null);
 
+            let root = Vis::load(data.get("html").unwrap_or(&Value::Null).as_str().unwrap_or("")).unwrap();
 
-            for ele in root.find(".flw-item") {
-                let node = Vis::dom(&ele);
-                let mut id = String::new();
-                let mut cover = String::new();
-                match node.find(".film-poster").find("img").attr("data-src"){
-                    Some(result) => {
-                        cover = result.to_string();
-                    }
-                    _ => {}
-                }
+            let mut server_type: HashMap<String, Vec<ReturnData>> = HashMap::new();
+
+            for server_type_ele in root.find(".ps_-block") {
+                let server_type_node = Vis::dom(&server_type_ele);
+                let server_type_title = server_type_node.find(".ps__-title").text().replace(":", "");
+
+                let mut server_list_per_type: Vec<ReturnData> = Vec::new();
                 
-                match node.find(".film-poster").find("a").attr("data-id") {
-                    Some(result) => {
-                        id = result.to_string();
+
+                for server_ele in server_type_node.find(".ps__-list").find(".server-item") {
+                    let server_ele_node = Vis::dom(&server_ele);
+
+                    let server_id = server_ele_node.attr("data-id");
+                    if server_id.is_none() {
+                        continue;
                     }
-                    _ => {}
-                }
-                let detail_node = node.find(".film-detail").find(".film-name").find("a");
-                let title = detail_node.text();
 
-                if cover.is_empty() || id.is_empty() || title.is_empty() {
-                    continue;
-                }
+                    let server_title = server_ele_node.find("a").text();
 
-                let return_data = ReturnData {
-                    id,
-                    title,
-                    cover
-                };
-                return_result.data.push(return_data);
+                    server_list_per_type.push(ReturnData {
+                        id: server_id.unwrap().to_string(),
+                        title: server_title
+                    });
+                }
+                server_type.insert(server_type_title, server_list_per_type);
+
             }
+            return_result.data = server_type;
             return_result.status = true;
         }
-
-
     }
     
     let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();

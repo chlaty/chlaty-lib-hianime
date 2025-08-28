@@ -1,126 +1,128 @@
 use std::ffi::{CString, CStr};
-use std::os::raw::{c_char, c_int};
-
+use std::os::raw::{c_char};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use serde_json::{Value, from_str};
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
 use visdom::Vis;
-use visdom::types::{BoxDynError};
-
-use std::collections::hash_map;
 use urlencoding::encode;
 
-use crate::{SERVER_HOST, SERVER_REFERER, SOURCE_HOST, SOURCE_REFERER};
+use crate::{ SOURCE_HOST, SOURCE_REFERER};
 
 
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ReturnConfig {
-    host: String,
-    referer: String
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnData{
     id: String,
-    title: String,
-    cover: String
+    title: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnResult {
     status: bool,
     message: String,
-    data: Vec<ReturnData>,
-    config: ReturnConfig,
+    data: Vec<Vec<ReturnData>>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Arguments {
+    id: String
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn get_episode_list(
-    search_ptr : *const c_char,
-    page_ptr: *const c_int,
+    arguments_ptr : *const c_char,
 ) -> *const c_char {
 
     let mut return_result = ReturnResult {
         status: false,
         message: String::from(""),
         data: Vec::new(),
-        config: ReturnConfig {
-            host: SERVER_HOST.to_string(),
-            referer: SERVER_REFERER.to_string()
-        }
     };
 
     // Check argument before processing
-    let mut valid_argument: bool = true;
-    if page_ptr.is_null() {
-        return_result.message = String::from("'page' is required.");
-        valid_argument = false;
+    let mut valid_arguments: bool = true;
+    if arguments_ptr.is_null() {
+        return_result.message = String::from("Expected 1 argument.");
+        valid_arguments = false;
     }
 
-    if search_ptr.is_null() {
-        return_result.message = String::from("'search' is required.");
-        valid_argument = false;
+    let mut args: Arguments = Arguments { 
+        id: String::from("") 
+    };
+    if valid_arguments {
+        unsafe { 
+            match from_str::<Arguments>(&CStr::from_ptr(arguments_ptr as *mut c_char).to_string_lossy().into_owned()) {
+                Ok(result) => {
+                    args.id = result.id
+                },
+                Err(e) => {
+                    return_result.message = String::from(e.to_string());
+                    valid_arguments = false;
+                }
+            }
+        };
     }
     // ================================================
 
-    if valid_argument {
-        let search_string = unsafe { CStr::from_ptr(search_ptr as *mut c_char).to_string_lossy().into_owned() };
-        let page_number = unsafe { *page_ptr.clone() as isize };
+    if valid_arguments {
+
+        let id = args.id;
 
         let client = reqwest::blocking::Client::new();
         let mut headers = HeaderMap::new();
         headers.insert(REFERER, HeaderValue::from_str(SOURCE_REFERER).unwrap());
         headers.insert(HOST, HeaderValue::from_str(SOURCE_HOST).unwrap());
 
-        let url = format!("https://{}/search?keyword={}&page={}", 
-            SOURCE_HOST, 
-            if search_string.trim().is_empty() { "+" } else { &encode(&search_string) }, 
-            encode(&page_number.to_string())
+        // https://hianime.to/ajax/v2/episode/list/100
+        let url = format!("https://{}/ajax/v2/episode/list/{}", 
+            SOURCE_HOST, encode(&id)
         );
         println!("url: {}", &url);
         let res = client.get(&url).headers(headers).send().unwrap();
         
         if res.status().is_success(){
-            let html = res.text().unwrap();
-            // println!("{}", &html);
-            let root = Vis::load(html).unwrap();
+            let data = res.json::<Value>().unwrap_or(Value::Null);
 
+            let root = Vis::load(data.get("html").unwrap_or(&Value::Null).as_str().unwrap_or("")).unwrap();
 
-            for ele in root.find(".flw-item") {
-                let node = Vis::dom(&ele);
-                let mut id = String::new();
-                let mut cover = String::new();
-                match node.find(".film-poster").find("img").attr("data-src"){
-                    Some(result) => {
-                        cover = result.to_string();
+            let mut episode_page_list: Vec<Vec<ReturnData>> = Vec::new();
+
+            for ep_page_ele in root.find(".ss-list") {
+                let mut episode_per_page: Vec<ReturnData> = Vec::new();
+                let ep_page_node = Vis::dom(&ep_page_ele);
+
+                for ep_ele in ep_page_node.find(".ssl-item ")  {
+                    let ep_node = Vis::dom(&ep_ele);
+                    let mut id = String::from("");
+                    match ep_node.attr("data-id") {
+                        Some(result) => {
+                            id = result.to_string();
+                        },
+                        None => {}
                     }
-                    _ => {}
-                }
-                let detail_node = node.find(".film-detail").find(".film-name").find("a");
-                match detail_node.attr("href") {
-                    Some(result) => {
-                        id = result.to_string().split("/").last().unwrap().to_string().split("?").nth(0).unwrap().to_string();
+
+                    let mut title = String::from("");
+                    match ep_node.attr("title") {
+                        Some(result) => {
+                            title = result.to_string();
+                        },
+                        None => {}
                     }
-                    _ => {}
+                
+                    episode_per_page.push(ReturnData {
+                        id: id,
+                        title: title
+                    });
                 }
-                let title = detail_node.text();
 
-                if cover.is_empty() || id.is_empty() || title.is_empty() {
-                    continue;
-                }
-
-                let return_data = ReturnData {
-                    id,
-                    title,
-                    cover
-                };
-                return_result.data.push(return_data);
+                episode_page_list.push(episode_per_page);
             }
+
+            return_result.data = episode_page_list;
+            return_result.status = true;
         }
-
-
     }
     
     let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
