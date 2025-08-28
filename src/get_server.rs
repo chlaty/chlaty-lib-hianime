@@ -2,7 +2,7 @@ use std::ffi::{CString, CStr};
 use std::os::raw::c_char;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value};
+use serde_json::{Value, from_str};
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
 use visdom::Vis;
 use regex::Regex;
@@ -96,10 +96,14 @@ struct ReturnResult {
     config: ReturnConfig,
 }
 
+#[derive(Serialize, Deserialize)]
+struct Arguments {
+    server_id: String
+}
+
 #[unsafe(no_mangle)]
-pub extern "C" fn get_episode(
-    _ : *const c_char, // Not used: episode_id_ptr
-    server_id_ptr: *const c_char,
+pub extern "C" fn get_server(
+    arguments_ptr: *const c_char,
 ) -> *const c_char {
 
     let mut return_result = ReturnResult {
@@ -114,17 +118,35 @@ pub extern "C" fn get_episode(
         }
     };
 
+    
+
     // Check argument before processing
-    let mut valid_argument: bool = true;
-    if server_id_ptr.is_null() {
-        return_result.message = String::from("'server_id' is required.");
-        valid_argument = false;
+    let mut valid_arguments: bool = true;
+    if arguments_ptr.is_null() {
+        return_result.message = String::from("Expected 1 argument.");
+        valid_arguments = false;
+    }
+    
+    let mut args: Arguments = Arguments { server_id: String::from("") };
+    if valid_arguments {
+        unsafe { 
+            match from_str::<Arguments>(&CStr::from_ptr(arguments_ptr as *mut c_char).to_string_lossy().into_owned()) {
+                Ok(result) => {
+                    args.server_id = result.server_id
+                },
+                Err(e) => {
+                    return_result.message = String::from(e.to_string());
+                    valid_arguments = false;
+                }
+            }
+        };
     }
     // ================================================
 
-    if valid_argument {
+    if valid_arguments {
         
-        let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
+        let server_id = args.server_id;
+
         let client = reqwest::blocking::Client::new();
 
 

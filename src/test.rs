@@ -1,27 +1,62 @@
 
 
 mod tests {
-    use std::ffi::{c_char, CString, c_int};
-    use crate::get_episode::get_episode;
+    use std::ffi::{c_char, CString};
+    use serde_json::{json, to_string};
+    // use crate::get_server::get_server;
 
     // #[test]
     // fn test_1() {
     //     unsafe {
-    //         let server_id = CString::new("1329879").expect("CString::new failed");
-    //         let get_episode_ptr = get_episode(std::ptr::null(), server_id.as_ptr());
+    //         let args = CString::new(to_string(&json!({
+    //             "server_id": String::from("1329879"),
+    //         })).unwrap()).expect("CString::new failed");
+            
+    //         let get_episode_ptr = get_episode(args.as_ptr());
     //         let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
     //         println!("{}", &result);
     //     }
     // }
 
-    use crate::search::search;
+    // use crate::search::search;
+
+    // #[test]
+    // fn test_2() {
+    //     unsafe {
+    //         let args = CString::new(to_string(&json!({
+    //             "search": String::from("ubel"),
+    //             "page": 1
+    //         })).unwrap()).expect("CString::new failed");
+            
+    //         let get_episode_ptr = search(args.as_ptr());
+    //         let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
+    //         println!("{}", &result);
+    //     }
+    // }
+    // use crate::get_episode_list::get_episode_list;
+
+    // #[test]
+    // fn test_3() {
+    //     unsafe {
+    //         let args = CString::new(to_string(&json!({
+    //             "id": "100".to_string(),
+    //         })).unwrap()).expect("CString::new failed");
+    //         let get_episode_ptr = get_episode_list(args.as_ptr());
+    //         let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
+    //         println!("{}", &result);
+    //     }
+    // }
+
+
+    use crate::get_episode_server::get_episode_server;
 
     #[test]
-    fn test_2() {
+    fn test_4() {
         unsafe {
-            let search_string = CString::new("ubel").expect("CString::new failed");
-            let page_number = c_int::from(1);
-            let get_episode_ptr = search(search_string.as_ptr(), &page_number as *const c_int);
+            let args = CString::new(to_string(&json!({
+                "id": "141568".to_string(),
+            })).unwrap()).expect("CString::new failed");
+            let get_episode_ptr = get_episode_server(args.as_ptr());
             let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
             println!("{}", &result);
         }

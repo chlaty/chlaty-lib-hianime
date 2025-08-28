@@ -3,7 +3,6 @@ name: Build Dylib on macOS
 on:
   push:
     branches: [build]
-  pull_request:
 
 jobs:
   build-macos:
