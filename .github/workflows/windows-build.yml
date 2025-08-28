@@ -12,10 +12,9 @@ jobs:
     strategy:
       matrix:
         target:
-          - x86_64-pc-windows-msvc     # Default 64-bit
+          - x86_64-pc-windows-msvc     # 64-bit
           - i686-pc-windows-msvc       # 32-bit
           - aarch64-pc-windows-msvc    # ARM64
-          - thumbv7a-pc-windows-msvc   # ARMv7 (experimental)
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +26,6 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      # ✅ PowerShell-compatible linker setup
       - name: Set Linker for i686
         if: matrix.target == 'i686-pc-windows-msvc'
         run: echo "CARGO_TARGET_I686_PC_WINDOWS_MSVC_LINKER=link.exe" >> $env:GITHUB_ENV
@@ -35,10 +33,6 @@ jobs:
       - name: Set Linker for aarch64
         if: matrix.target == 'aarch64-pc-windows-msvc'
         run: echo "CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER=link.exe" >> $env:GITHUB_ENV
-
-      - name: Set Linker for thumbv7a
-        if: matrix.target == 'thumbv7a-pc-windows-msvc'
-        run: echo "CARGO_TARGET_THUMBV7A_PC_WINDOWS_MSVC_LINKER=link.exe" >> $env:GITHUB_ENV
 
       - name: Build DLL
         run: cargo build --release --target ${{ matrix.target }}
@@ -48,3 +42,4 @@ jobs:
         with:
           name: dll-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/*.dll
+
