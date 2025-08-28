@@ -20,11 +20,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust and Target
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           target: ${{ matrix.target }}
-          override: true
 
       - name: Set Linker for i686
         if: matrix.target == 'i686-pc-windows-msvc'
