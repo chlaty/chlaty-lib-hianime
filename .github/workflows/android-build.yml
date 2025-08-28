@@ -40,11 +40,17 @@ jobs:
         with:
           ndk-version: ${{ env.ANDROID_NDK_VERSION }}
 
-      - name: Set up Linker and AR
+      - name: Set up Linker, AR, and CC
         run: |
           TOOLCHAIN=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin
+
           echo "CARGO_TARGET_${{ matrix.envkey }}_AR=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
           echo "CARGO_TARGET_${{ matrix.envkey }}_LINKER=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
+
+          echo "CC_${{ matrix.target }}=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
+          echo "CC_${{ matrix.envkey }}=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
+          echo "TARGET_CC=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
+          echo "CC=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
 
       - name: Build .so for Android
         run: cargo build --release --target ${{ matrix.target }}
