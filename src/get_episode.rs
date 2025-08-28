@@ -1,15 +1,14 @@
 use std::ffi::{CString, CStr};
 use std::os::raw::c_char;
 
-
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, value};
+use serde_json::{Value};
 use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
 use visdom::Vis;
 use regex::Regex;
 use visdom::types::{BoxDynError, BoxDynElement};
-use std::collections::hash_map;
-use tracing::{info,error};
+
+use crate::{SERVER_HOST, SERVER_REFERER, SOURCE_HOST, SOURCE_REFERER};
 
 
 fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
@@ -82,9 +81,10 @@ fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ReturnResultHeader {
+struct ReturnConfig {
     host: String,
     referer: String,
+    playlist_base_url: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -92,18 +92,23 @@ struct ReturnResult {
     status: bool,
     message: String,
     data: Value,
-    headers: ReturnResultHeader 
+    config: ReturnConfig,
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn new(server_id_ptr: *const c_char) -> *const c_char {
+pub extern "C" fn get_episode(
+    _ : *const c_char, // Not used: episode_id_ptr
+    server_id_ptr: *const c_char,
+) -> *const c_char {
+
     let mut return_result = ReturnResult {
         status: false,
         message: String::from(""),
         data: Value::Null,
-        headers: ReturnResultHeader {
-            host: String::from("megacloud.blog"),
-            referer: String::from("https://megacloud.blog/"),
+        config: ReturnConfig {
+            host: SERVER_HOST.to_string(),
+            referer: SERVER_REFERER.to_string(),
+            playlist_base_url: String::from("")
         }
     };
 
@@ -113,113 +118,111 @@ pub extern "C" fn new(server_id_ptr: *const c_char) -> *const c_char {
         return_result.message = String::from("'server_id' is required.");
         valid_argument = false;
     }
-
-    if !valid_argument {
-        let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
-        let result_ptr = result.as_ptr();
-        std::mem::forget(result); // prevent Rust from freeing it
-        return result_ptr;
-    }
     // ================================================
 
-
-
-    let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
-    let client = reqwest::blocking::Client::new();
-
-    
-
-    // Get forward episode id
-    let mut forward_server_id: Option<String> = None;
-    let mut headers = HeaderMap::new();
-    headers.insert(REFERER, HeaderValue::from_static("https://hianime.to/"));
-    headers.insert(HOST, HeaderValue::from_static("hianime.to"));
-    
-    let url = format!("https://hianime.to/ajax/v2/episode/sources?id={}", &server_id);
-    let res = client.get(url)
-        .headers(headers.clone())
-        .send().unwrap();
-
-    if res.status().is_success() {
-        let data = res.json::<Value>();
-        match data {
-            Ok(result) => {
-                forward_server_id = Some(result.get("link").unwrap().to_string()
-                    .split("/").last().unwrap().split("?").nth(0).unwrap().to_string());
-            }
-            _ => {
-                return_result.status = false;
-                error!("[Failed] Failed to get forward episode id.");
-            }
-        }
-    }
-
-
-    // ================================================
-
-
-
-    // Get html dom then extract token.
-    println!("Forward episode id: {:?}", forward_server_id.as_ref().clone());
-    let mut token: Option<String> = None;
-    if forward_server_id.is_some() {
-        let mut headers = HeaderMap::new();
-        let referer = HeaderValue::from_str(&return_result.headers.referer.clone());
-        let host = HeaderValue::from_str(&return_result.headers.host.clone());
-        headers.insert(REFERER, referer.unwrap());
-        headers.insert(HOST, host.unwrap());
+    if valid_argument {
         
-        let url = format!("https://megacloud.blog/embed-2/v3/e-1/{}?k=1", forward_server_id.as_ref().unwrap());
+        let server_id = unsafe { CStr::from_ptr(server_id_ptr as *mut c_char).to_string_lossy().into_owned() };
+        let client = reqwest::blocking::Client::new();
 
+
+        // Get forward episode id
+        let mut forward_server_id: Option<String> = None;
+        let mut headers = HeaderMap::new();
+
+        headers.insert(REFERER, HeaderValue::from_str(&SOURCE_REFERER).unwrap());
+        headers.insert(HOST, HeaderValue::from_str(&SOURCE_HOST).unwrap());
+        
+        let url = format!("https://{}/ajax/v2/episode/sources?id={}", &SOURCE_HOST, &server_id);
         let res = client.get(url)
             .headers(headers.clone())
             .send().unwrap();
 
         if res.status().is_success() {
-            let body = res.text();
-            println!("Body: {}", body.as_ref().unwrap());
-            match extract_key_token(body.as_ref().unwrap()) {
-                Ok(Some(result)) => {
-                    token = Some(result);
-                }
-                _ => {
-                    return_result.status = false;
-                    
-                    error!("[Not Found] Failed to extract key token.");
-                }
-            }
-        }
-    }
-    // ================================================
-
-    // Get source info from generated token.
-    println!("Token: {:?}", token.clone());
-    if token.is_some() {
-        let mut headers = HeaderMap::new();
-        headers.insert(REFERER, HeaderValue::from_static("https://megacloud.blog/"));
-        headers.insert(HOST, HeaderValue::from_static("megacloud.blog"));
-        let url = format!("https://megacloud.blog/embed-2/v3/e-1/getSources?id={}&_k={}", forward_server_id.as_ref().unwrap(), &token.unwrap());
-        let res = client.get(url)
-        .headers(headers.clone())
-        .send().unwrap();
-
-        if res.status().is_success() {
             let data = res.json::<Value>();
             match data {
                 Ok(result) => {
-                    return_result.status = true;
-                    return_result.data = result;
+                    forward_server_id = Some(result.get("link").unwrap().to_string()
+                        .split("/").last().unwrap().split("?").nth(0).unwrap().to_string());
                 }
                 _ => {
                     return_result.status = false;
-                    error!("[Failed] Failed to get sources.");
+                    return_result.message = String::from("Failed to get forward episode id.");
+                    println!("[Failed] Failed to get forward episode id.");
                 }
             }
         }
-        
-    }
 
-    // ========================================
+        // ================================================
+
+
+
+        // Get html dom then extract token.
+        println!("Forward episode id: {:?}", forward_server_id.as_ref().clone());
+        let mut token: Option<String> = None;
+        if forward_server_id.is_some() {
+            let mut headers = HeaderMap::new();
+
+            headers.insert(REFERER, HeaderValue::from_str(&SERVER_REFERER).unwrap());
+            headers.insert(HOST, HeaderValue::from_str(&SERVER_HOST).unwrap());
+            
+            let url = format!("https://{}/embed-2/v3/e-1/{}?k=1", &SERVER_HOST, forward_server_id.as_ref().unwrap());
+
+            let res = client.get(url)
+                .headers(headers.clone())
+                .send().unwrap();
+
+            if res.status().is_success() {
+                let body = res.text();
+                println!("Body: {}", body.as_ref().unwrap());
+                match extract_key_token(body.as_ref().unwrap()) {
+                    Ok(Some(result)) => {
+                        token = Some(result);
+                    }
+                    _ => {
+                        return_result.status = false;
+                        
+                        println!("[Not Found] Failed to extract key token.");
+                    }
+                }
+            }
+        }
+        // ================================================
+
+        // Get source info from generated token.
+        println!("Token: {:?}", token.clone());
+        if token.is_some() {
+            let mut headers = HeaderMap::new();
+            headers.insert(REFERER, HeaderValue::from_str(&SERVER_REFERER).unwrap());
+            headers.insert(HOST, HeaderValue::from_str(&SERVER_HOST).unwrap());
+            let url = format!("https://{}/embed-2/v3/e-1/getSources?id={}&_k={}", &SERVER_HOST, forward_server_id.as_ref().unwrap(), &token.unwrap());
+            let res = client.get(url)
+            .headers(headers.clone())
+            .send().unwrap();
+
+            if res.status().is_success() {
+                let data = res.json::<Value>();
+                match data {
+                    Ok(result) => {
+                        return_result.status = true;
+                        let file_url = result.get("sources").unwrap().get(0).unwrap().get("file").unwrap().as_str().unwrap();
+                        let base_url = file_url.split('/').collect::<Vec<_>>()[..file_url.matches('/').count()].join("/");
+
+                        return_result.config.playlist_base_url = base_url;
+                        return_result.data = result;
+                        return_result.message = String::from("success");
+                    }
+                    _ => {
+                        return_result.status = false;
+                        println!("[Failed] Failed to get sources.");
+                    }
+                }
+            }
+            
+        }
+
+        // ========================================
+    }
     
     let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
     let result_ptr = result.as_ptr();
