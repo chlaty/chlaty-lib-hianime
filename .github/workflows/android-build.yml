@@ -44,9 +44,13 @@ jobs:
         run: |
           TOOLCHAIN=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin
 
+          # Cargo environment
           echo "CARGO_TARGET_${{ matrix.envkey }}_AR=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
           echo "CARGO_TARGET_${{ matrix.envkey }}_LINKER=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
 
+          # cc-rs and ring compatibility
+          echo "AR_${{ matrix.target }}=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
+          echo "AR_${{ matrix.envkey }}=$TOOLCHAIN/llvm-ar" >> $GITHUB_ENV
           echo "CC_${{ matrix.target }}=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
           echo "CC_${{ matrix.envkey }}=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
           echo "TARGET_CC=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
