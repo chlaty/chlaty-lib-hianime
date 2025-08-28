@@ -37,7 +37,7 @@ struct ReturnResult {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn search(
+pub extern "C" fn get_episode_list(
     search_ptr : *const c_char,
     page_ptr: *const c_int,
 ) -> *const c_char {
@@ -98,14 +98,13 @@ pub extern "C" fn search(
                     }
                     _ => {}
                 }
-                
-                match node.find(".film-poster").find("a").attr("data-id") {
+                let detail_node = node.find(".film-detail").find(".film-name").find("a");
+                match detail_node.attr("href") {
                     Some(result) => {
-                        id = result.to_string();
+                        id = result.to_string().split("/").last().unwrap().to_string().split("?").nth(0).unwrap().to_string();
                     }
                     _ => {}
                 }
-                let detail_node = node.find(".film-detail").find(".film-name").find("a");
                 let title = detail_node.text();
 
                 if cover.is_empty() || id.is_empty() || title.is_empty() {

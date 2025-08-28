@@ -84,7 +84,8 @@ fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
 struct ReturnConfig {
     host: String,
     referer: String,
-    playlist_base_url: String
+    playlist_base_url: String,
+    segment_base_url: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -108,7 +109,8 @@ pub extern "C" fn get_episode(
         config: ReturnConfig {
             host: SERVER_HOST.to_string(),
             referer: SERVER_REFERER.to_string(),
-            playlist_base_url: String::from("")
+            playlist_base_url: String::from(""),
+            segment_base_url: String::from("")
         }
     };
 
@@ -208,7 +210,8 @@ pub extern "C" fn get_episode(
                         let file_url = result.get("sources").unwrap().get(0).unwrap().get("file").unwrap().as_str().unwrap();
                         let base_url = file_url.split('/').collect::<Vec<_>>()[..file_url.matches('/').count()].join("/");
 
-                        return_result.config.playlist_base_url = base_url;
+                        return_result.config.playlist_base_url = base_url.clone();
+                        return_result.config.segment_base_url = base_url;
                         return_result.data = result;
                         return_result.message = String::from("success");
                     }

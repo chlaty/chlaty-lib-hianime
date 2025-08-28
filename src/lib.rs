@@ -8,6 +8,7 @@ pub const SERVER_REFERER: &str = "https://megacloud.blog/";
 
 mod search;
 mod get_episode;
+mod get_episode_list;
 mod free_ptr;
 
 #[cfg(test)]

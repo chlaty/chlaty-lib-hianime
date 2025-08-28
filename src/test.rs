@@ -19,11 +19,11 @@ mod tests {
     #[test]
     fn test_2() {
         unsafe {
-            let search_string = CString::new("").expect("CString::new failed");
+            let search_string = CString::new("ubel").expect("CString::new failed");
             let page_number = c_int::from(1);
             let get_episode_ptr = search(search_string.as_ptr(), &page_number as *const c_int);
-            let _ = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
-            // println!("{}", &result);
+            let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
+            println!("{}", &result);
         }
     }
 }
