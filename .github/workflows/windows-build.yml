@@ -5,24 +5,43 @@ on:
     branches: [build]
   pull_request:
     branches: [build]
+
 jobs:
   build-windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc     # 64-bit
+          - i686-pc-windows-msvc       # 32-bit
+          - aarch64-pc-windows-msvc    # ARM64
+          - thumbv7a-pc-windows-msvc   # ARMv7 (experimental)
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Install Rust and Target
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: ${{ matrix.target }}
           override: true
 
+      - name: Set Linker (if needed)
+        run: |
+          if [ "${{ matrix.target }}" = "i686-pc-windows-msvc" ]; then
+            echo "CARGO_TARGET_I686_PC_WINDOWS_MSVC_LINKER=link.exe" >> $GITHUB_ENV
+          elif [ "${{ matrix.target }}" = "aarch64-pc-windows-msvc" ]; then
+            echo "CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER=link.exe" >> $GITHUB_ENV
+          elif [ "${{ matrix.target }}" = "thumbv7a-pc-windows-msvc" ]; then
+            echo "CARGO_TARGET_THUMBV7A_PC_WINDOWS_MSVC_LINKER=link.exe" >> $GITHUB_ENV
+          fi
+
       - name: Build DLL
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload DLL Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-dll
-          path: target/release/*.dll
+          name: dll-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/*.dll
