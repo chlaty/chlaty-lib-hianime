@@ -9,21 +9,25 @@ on:
 jobs:
   build-macos:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin     # Intel Macs
+          - aarch64-apple-darwin    # Apple Silicon
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust and Target
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          target: ${{ matrix.target }}
 
       - name: Build Dylib
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload .dylib Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: macos-dylib
-          path: target/release/lib*.dylib
+          name: dylib-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/lib*.dylib
