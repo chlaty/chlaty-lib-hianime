@@ -58,9 +58,13 @@ jobs:
 
       - name: Build .so for Android
         run: cargo build --release --target ${{ matrix.target }}
+      
+      - name: Rename .so to target-specific name
+        run: |
+          mv target/${{ matrix.target }}/release/*.so target/${{ matrix.target }}/release/${{ matrix.target }}.so
 
       - name: Upload .so Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/*.so
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.target }}.so
