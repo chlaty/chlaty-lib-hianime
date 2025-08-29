@@ -38,13 +38,13 @@ jobs:
       - name: Rename .dll to target-specific name
         run: |
           $source = Get-ChildItem -Path "target/${{ matrix.target }}/release/" -Filter *.dll | Select-Object -First 1
-          $destination = Join-Path -Path $source.DirectoryName -ChildPath "${{ matrix.target }}.dll"
+          $destination = Join-Path -Path $source.DirectoryName -ChildPath "chlaty-lib-hianime-${{ matrix.target }}.dll"
           Rename-Item -Path $source.FullName -NewName $destination
 
 
       - name: Upload DLL Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dll-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/${{ matrix.target }}.dll
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/chlaty-lib-hianime-${{ matrix.target }}.dll
 
