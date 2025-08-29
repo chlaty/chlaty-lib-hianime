@@ -37,8 +37,9 @@ jobs:
 
       - name: Rename .dll to target-specific name
         run: |
-          $dll = Get-ChildItem "target/${{ matrix.target }}/release/" -Filter *.dll | Select-Object -First 1
-          Rename-Item $dll.FullName "target/${{ matrix.target }}/release/${{ matrix.target }}.dll"
+          $source = Get-ChildItem -Path "target/${{ matrix.target }}/release/" -Filter *.dll | Select-Object -First 1
+          $destination = Join-Path -Path $source.DirectoryName -ChildPath "${{ matrix.target }}.dll"
+          Rename-Item -Path $source.FullName -NewName $destination
 
 
       - name: Upload DLL Artifact
