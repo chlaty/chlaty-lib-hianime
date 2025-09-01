@@ -1,5 +1,6 @@
 {
-    "version": "0.1.0",
-    "pre-release": "",
-    "latest-release": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.0/manifest.json"
+    "0.1.0": {
+        "pre-release": "",
+        "latest-release": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.0/manifest.json"
+    }
 }
