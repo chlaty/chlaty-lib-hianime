@@ -33,7 +33,6 @@ struct ReturnResult {
 struct Arguments {
     search: String,
     page: isize
-
 }
 
 
@@ -68,7 +67,7 @@ pub extern "C" fn search(
                     args.page = result.page
                 },
                 Err(e) => {
-                    return_result.message = String::from(e.to_string());
+                    return_result.message = String::from(format!("Invalid arguments: {}", e.to_string()));
                     valid_arguments = false;
                 }
             }

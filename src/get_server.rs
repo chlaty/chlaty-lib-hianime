@@ -98,7 +98,7 @@ struct ReturnResult {
 
 #[derive(Serialize, Deserialize)]
 struct Arguments {
-    server_id: String
+    id: String
 }
 
 #[unsafe(no_mangle)]
@@ -127,12 +127,12 @@ pub extern "C" fn get_server(
         valid_arguments = false;
     }
     
-    let mut args: Arguments = Arguments { server_id: String::from("") };
+    let mut args: Arguments = Arguments { id: String::from("") };
     if valid_arguments {
         unsafe { 
             match from_str::<Arguments>(&CStr::from_ptr(arguments_ptr as *mut c_char).to_string_lossy().into_owned()) {
                 Ok(result) => {
-                    args.server_id = result.server_id
+                    args.id = result.id
                 },
                 Err(e) => {
                     return_result.message = String::from(e.to_string());
@@ -145,7 +145,7 @@ pub extern "C" fn get_server(
 
     if valid_arguments {
         
-        let server_id = args.server_id;
+        let server_id = args.id;
 
         let client = reqwest::blocking::Client::new();
 
