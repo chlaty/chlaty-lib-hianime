@@ -1,4 +1,5 @@
 {
-    "latest-version": "0.1.0",
+    "latest-version": "0.1.1",
+    "0.1.1": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.1/manifest.json",
     "0.1.0": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.0/manifest.json"
 }
