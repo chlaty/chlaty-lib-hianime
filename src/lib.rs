@@ -6,11 +6,11 @@ pub const SERVER_HOST: &str = "megacloud.blog";
 pub const SERVER_REFERER: &str = "https://megacloud.blog/";
 
 
-mod search;
-mod get_episode_list;
-mod get_episode_server;
-mod get_server;
-mod free_ptr;
+pub mod search;
+pub mod get_episode_list;
+pub mod get_episode_server;
+pub mod get_server;
+pub mod free_ptr;
 
 #[cfg(test)]
 mod test;
