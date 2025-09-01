@@ -1,3 +1,4 @@
 {
-    "latest": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.0/manifest.json"
+    "latest-version": "0.1.0",
+    "0.1.0": "https://github.com/chlaty/chlaty-lib-hianime/releases/download/0.1.0/manifest.json"
 }
