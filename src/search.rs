@@ -90,7 +90,7 @@ pub extern "C" fn search(
             if search_string.trim().is_empty() { "+" } else { &encode(&search_string) }, 
             encode(&page_number.to_string())
         );
-        println!("url: {}", &url);
+        
         let res = client.get(&url).headers(headers).send().unwrap();
         
         if res.status().is_success(){

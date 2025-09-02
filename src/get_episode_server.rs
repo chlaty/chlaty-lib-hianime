@@ -81,7 +81,7 @@ pub extern "C" fn get_episode_server(
         let url = format!("https://{}/ajax/v2/episode/servers?episodeId={}", 
             SOURCE_HOST, encode(&id)
         );
-        println!("url: {}", &url);
+        
         let res = client.get(&url).headers(headers).send().unwrap();
         
         if res.status().is_success(){

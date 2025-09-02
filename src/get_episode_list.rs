@@ -14,6 +14,7 @@ use crate::{ SOURCE_HOST, SOURCE_REFERER};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnData{
+    index: usize,
     id: String,
     title: String
 }
@@ -79,7 +80,7 @@ pub extern "C" fn get_episode_list(
         let url = format!("https://{}/ajax/v2/episode/list/{}", 
             SOURCE_HOST, encode(&id)
         );
-        println!("url: {}", &url);
+        
         let res = client.get(&url).headers(headers).send().unwrap();
         
         if res.status().is_success(){
@@ -95,6 +96,15 @@ pub extern "C" fn get_episode_list(
 
                 for ep_ele in ep_page_node.find(".ssl-item ")  {
                     let ep_node = Vis::dom(&ep_ele);
+
+                    let mut index:usize = 0;
+                    match ep_node.attr("data-number") {
+                        Some(result) => {
+                            index = result.to_string().parse().unwrap();
+                        },
+                        None => {}
+                    }
+
                     let mut id = String::from("");
                     match ep_node.attr("data-id") {
                         Some(result) => {
@@ -112,8 +122,9 @@ pub extern "C" fn get_episode_list(
                     }
                 
                     episode_per_page.push(ReturnData {
-                        id: id,
-                        title: title
+                        index,
+                        id,
+                        title,
                     });
                 }
 

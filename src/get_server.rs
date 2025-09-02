@@ -182,7 +182,7 @@ pub extern "C" fn get_server(
 
 
         // Get html dom then extract token.
-        println!("Forward episode id: {:?}", forward_server_id.as_ref().clone());
+        // println!("Forward episode id: {:?}", forward_server_id.as_ref().clone());
         let mut token: Option<String> = None;
         if forward_server_id.is_some() {
             let mut headers = HeaderMap::new();
@@ -198,7 +198,7 @@ pub extern "C" fn get_server(
 
             if res.status().is_success() {
                 let body = res.text();
-                println!("Body: {}", body.as_ref().unwrap());
+                // println!("Body: {}", body.as_ref().unwrap());
                 match extract_key_token(body.as_ref().unwrap()) {
                     Ok(Some(result)) => {
                         token = Some(result);
@@ -214,7 +214,7 @@ pub extern "C" fn get_server(
         // ================================================
 
         // Get source info from generated token.
-        println!("Token: {:?}", token.clone());
+        // println!("Token: {:?}", token.clone());
         if token.is_some() {
             let mut headers = HeaderMap::new();
             headers.insert(REFERER, HeaderValue::from_str(&SERVER_REFERER).unwrap());
