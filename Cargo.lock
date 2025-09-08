@@ -107,6 +107,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tracing",
+ "url",
  "urlencoding",
  "visdom",
 ]

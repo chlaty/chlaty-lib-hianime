@@ -2,8 +2,10 @@
 
 pub const SOURCE_HOST: &str = "hianime.to";
 pub const SOURCE_REFERER: &str = "https://hianime.to/";
-pub const SERVER_HOST: &str = "megacloud.blog";
+
+pub const SERVER_ORIGIN: &str = "https://megacloud.blog";
 pub const SERVER_REFERER: &str = "https://megacloud.blog/";
+pub const SERVER_HOST: &str = "megacloud.blog";
 
 
 pub mod search;

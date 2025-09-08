@@ -7,8 +7,9 @@ use reqwest::header::{HeaderMap, HeaderValue, REFERER, HOST};
 use visdom::Vis;
 use regex::Regex;
 use visdom::types::{BoxDynError, BoxDynElement};
+use url::Url;
 
-use crate::{SERVER_HOST, SERVER_REFERER, SOURCE_HOST, SOURCE_REFERER};
+use crate::{SERVER_HOST, SERVER_ORIGIN, SERVER_REFERER, SOURCE_HOST, SOURCE_REFERER};
 
 
 fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
@@ -84,6 +85,7 @@ fn extract_key_token(html: &str) -> Result<Option<String>, BoxDynError> {
 struct ReturnConfig {
     host: String,
     referer: String,
+    origin: String,
     playlist_base_url: String,
     segment_base_url: String
 }
@@ -111,8 +113,9 @@ pub extern "C" fn get_server(
         message: String::from(""),
         data: Value::Null,
         config: ReturnConfig {
-            host: SERVER_HOST.to_string(),
+            host: String::from(""),
             referer: SERVER_REFERER.to_string(),
+            origin: SERVER_ORIGIN.to_string(),
             playlist_base_url: String::from(""),
             segment_base_url: String::from("")
         }
@@ -228,14 +231,33 @@ pub extern "C" fn get_server(
                 let data = res.json::<Value>();
                 match data {
                     Ok(result) => {
-                        return_result.status = true;
+                        let server = result.get("server").unwrap().as_u64().unwrap() as usize;
                         let file_url = result.get("sources").unwrap().get(0).unwrap().get("file").unwrap().as_str().unwrap();
-                        let base_url = file_url.split('/').collect::<Vec<_>>()[..file_url.matches('/').count()].join("/");
+                        let base_url  = file_url.split('/').collect::<Vec<_>>()[..file_url.matches('/').count()].join("/");
+                        if server == 1 {
+                            return_result.config.segment_base_url = base_url.clone();
+                        }
 
-                        return_result.config.playlist_base_url = base_url.clone();
-                        return_result.config.segment_base_url = base_url;
-                        return_result.data = result;
-                        return_result.message = String::from("success");
+                        match Url::parse(file_url) {
+                            Ok(parsed_url) => {
+                                if let Some(host) = parsed_url.host_str() {
+                                    return_result.status = true;
+                                    if server != 6 {
+                                        return_result.config.playlist_base_url = base_url.clone();
+                                    }
+                                    
+                                    return_result.config.host = host.to_string();
+                                    return_result.data = result;
+                                    return_result.message = String::from("success");
+                                } else {
+                                    return_result.message = String::from("Failed to get host.");
+                                }
+                            }
+                            Err(e) => {
+                                return_result.message = String::from(e.to_string());
+                            },
+                        }
+                        
                     }
                     _ => {
                         return_result.status = false;
