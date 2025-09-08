@@ -8,7 +8,7 @@ fi
 
 # Define ENV
 REPO="chlaty/chlaty-lib-hianime"
-VERSION="v0.1.2"
+VERSION="0.1.3"
 OUTPUT_DIR="dist"
 
 
