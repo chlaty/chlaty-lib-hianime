@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    
     strategy:
       matrix:
         include:
@@ -24,6 +24,8 @@ jobs:
           - target: x86_64-linux-android
             linker: x86_64-linux-android24-clang
             envkey: X86_64_LINUX_ANDROID
+            
+    runs-on: ubuntu-latest
 
     env:
       ANDROID_NDK_VERSION: r26d
