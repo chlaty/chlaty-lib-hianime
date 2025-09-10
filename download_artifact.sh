@@ -9,11 +9,11 @@ fi
 # Define ENV
 REPO="chlaty/chlaty-lib-hianime"
 VERSION="0.1.3"
-OUTPUT_DIR="dist"
+OUTPUT_DIR="artifacts"
 
 
-# Clean dist directory if it exist
-rm -rf dist
+# Clean output directory if it exist
+rm -rf "$OUTPUT_DIR"
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
