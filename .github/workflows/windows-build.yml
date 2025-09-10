@@ -8,15 +8,13 @@ on:
 
 jobs:
   build-windows:
-    
+    runs-on: windows-latest
     strategy:
       matrix:
         target:
           - x86_64-pc-windows-msvc     # 64-bit
           - i686-pc-windows-msvc       # 32-bit
           - aarch64-pc-windows-msvc    # ARM64
-    
-    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -31,12 +29,16 @@ jobs:
         with:
           workspaces: '. -> target'
 
-      - name: Install Cross Dependencies
-        run: |
-          cargo install cross
+      - name: Set Linker for i686
+        if: matrix.target == 'i686-pc-windows-msvc'
+        run: echo "CARGO_TARGET_I686_PC_WINDOWS_MSVC_LINKER=link.exe" >> $env:GITHUB_ENV
+
+      - name: Set Linker for aarch64
+        if: matrix.target == 'aarch64-pc-windows-msvc'
+        run: echo "CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER=link.exe" >> $env:GITHUB_ENV
 
       - name: Build DLL
-        run: cross build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Rename .dll to target-specific name
         run: |
