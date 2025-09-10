@@ -28,8 +28,12 @@ jobs:
         with:
           workspaces: '. -> target'
 
+      - name: Install Cross Dependencies
+        run: |
+          cargo install cross
+
       - name: Build Dylib
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Rename .dylib to target-specific name
         run: |
