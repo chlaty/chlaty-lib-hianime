@@ -35,18 +35,8 @@ jobs:
           sudo apt install musl-tools
           cargo install cross
 
-      - name: Install Cross Dependencies
-        run: |
-          sudo apt-get update
-          if [ "${{ matrix.target }}" = "i686-unknown-linux-musl" ]; then
-            sudo apt-get install gcc-multilib
-          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-musl" ]; then
-            sudo apt-get install gcc-aarch64-linux-musl
-            echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-musl-gcc" >> $GITHUB_ENV
-          fi
-
       - name: Build Shared Library
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Rename .so to target-specific name
         run: |
