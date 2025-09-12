@@ -63,8 +63,12 @@ jobs:
           echo "TARGET_CC=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
           echo "CC=$TOOLCHAIN/${{ matrix.linker }}" >> $GITHUB_ENV
 
+      - name: Install Cross Dependencies
+        run: |
+          cargo install cross
+
       - name: Build .so for Android
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }}
       
       - name: Rename .so to target-specific name
         run: |
