@@ -7,8 +7,9 @@ if ! command -v gh &> /dev/null; then
 fi
 
 # Define ENV
+NAME="chlaty-lib-hianime"
 REPO="chlaty/chlaty-lib-hianime"
-VERSION="0.1.4"
+VERSION="0.1.5"
 OUTPUT_DIR="artifacts"
 
 
@@ -51,19 +52,19 @@ find "$OUTPUT_DIR" -mindepth 1 -type d -empty -delete
 echo "📝 Generating manifest.json..."
 
 declare -A targets=(
-  ["windows/x86_64"]="chlaty-lib-hianime-x86_64-pc-windows-msvc.dll"
-  ["windows/i686"]="chlaty-lib-hianime-i686-pc-windows-msvc.dll"
-  ["windows/aarch64"]="chlaty-lib-hianime-aarch64-pc-windows-msvc.dll"
-  ["linux/x86_64"]="chlaty-lib-hianime-x86_64-unknown-linux-gnu.so"
-  ["linux/i686"]="chlaty-lib-hianime-i686-unknown-linux-gnu.so"
-  ["linux/aarch64"]="chlaty-lib-hianime-aarch64-unknown-linux-gnu.so"
-  ["linux/armv7"]="chlaty-lib-hianime-armv7-unknown-linux-gnueabihf.so"
-  ["macos/x86_64"]="chlaty-lib-hianime-x86_64-apple-darwin.dylib"
-  ["macos/aarch64"]="chlaty-lib-hianime-aarch64-apple-darwin.dylib"
-  ["android/x86_64"]="chlaty-lib-hianime-x86_64-linux-android.so"
-  ["android/aarch64"]="chlaty-lib-hianime-aarch64-linux-android.so"
-  ["android/armv7"]="chlaty-lib-hianime-armv7-linux-androideabi.so"
-  ["android/i686"]="chlaty-lib-hianime-i686-linux-android.so"
+  ["windows/x86_64"]="$NAME-x86_64-pc-windows-msvc.dll"
+  ["windows/i686"]="$NAME-i686-pc-windows-msvc.dll"
+  ["windows/aarch64"]="$NAME-aarch64-pc-windows-msvc.dll"
+  ["linux/x86_64"]="$NAME-x86_64-unknown-linux-gnu.so"
+  ["linux/i686"]="$NAME-i686-unknown-linux-gnu.so"
+  ["linux/aarch64"]="$NAME-aarch64-unknown-linux-gnu.so"
+  ["linux/armv7"]="$NAME-armv7-unknown-linux-gnueabihf.so"
+  ["macos/x86_64"]="$NAME-x86_64-apple-darwin.dylib"
+  ["macos/aarch64"]="$NAME-aarch64-apple-darwin.dylib"
+  ["android/x86_64"]="$NAME-x86_64-linux-android.so"
+  ["android/aarch64"]="$NAME-aarch64-linux-android.so"
+  ["android/armv7"]="$NAME-armv7-linux-androideabi.so"
+  ["android/i686"]="$NAME-i686-linux-android.so"
 )
 
 # Build manifest as a jq-compatible JSON object
@@ -74,7 +75,7 @@ for key in "${!targets[@]}"; do
   path="$OUTPUT_DIR/$file"
   [ -f "$path" ] || continue
   sha256=$(sha256sum "$path" | awk '{print $1}')
-  url="https://github.com/chlaty/chlaty-lib-hianime/releases/download/$VERSION/$file"
+  url="https://github.com/$REPO/releases/download/$VERSION/$file"
   jq_manifest=$(echo "$jq_manifest" | jq --arg p "$platform" --arg a "$arch" --arg f "$url" --arg s "$sha256" '
     .[$p][$a] = {file: $f, sha256: $s}
   ')

@@ -23,7 +23,7 @@ struct ReturnData{
 struct ReturnResult {
     status: bool,
     message: String,
-    data: Vec<Vec<ReturnData>>,
+    data: Vec<Vec<Vec<ReturnData>>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -131,7 +131,7 @@ pub extern "C" fn get_episode_list(
                 episode_page_list.push(episode_per_page);
             }
 
-            return_result.data = episode_page_list;
+            return_result.data = vec![episode_page_list];
             return_result.status = true;
         }
     }
