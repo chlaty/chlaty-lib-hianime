@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 opt-level = 3 
 lto = true 
 strip = true
+codegen-units = 1
 
 [dependencies]
 regex = "1.11.2"
