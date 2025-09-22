@@ -1,25 +1,28 @@
 
 
 mod tests {
-    use std::ffi::{c_char, CString};
+    use std::ffi::{c_char, CString, CStr};
     use serde_json::{json, to_string};
-    
+    use crate::free_ptr::free_ptr;
 
-    // use crate::search::search;
+    use crate::search::search;
 
-    // #[test]
-    // fn test_2() {
-    //     unsafe {
-    //         let args = CString::new(to_string(&json!({
-    //             "search": String::from("ubel"),
-    //             "page": 1
-    //         })).unwrap()).expect("CString::new failed");
+    #[test]
+    fn test_2() {
+        unsafe {
+            let args = CString::new(to_string(&json!({
+                "search": String::from("ubel"),
+                "page": 1
+            })).unwrap()).expect("CString::new failed");
             
-    //         let get_episode_ptr = search(args.as_ptr());
-    //         let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
-    //         println!("{}", &result);
-    //     }
-    // }
+            let search_ptr = search(args.as_ptr());
+            let result = CStr::from_ptr(search_ptr).to_str().unwrap();
+
+            free_ptr(search_ptr as *mut c_char);
+
+            println!("{}", &result);
+        }
+    }
 
     // use crate::get_episode_list::get_episode_list;
     // #[test]

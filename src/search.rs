@@ -135,9 +135,8 @@ pub extern "C" fn search(
 
 
     }
-    
-    let result = CString::new(serde_json::to_string(&return_result).unwrap()).unwrap();
-    let result_ptr = result.as_ptr();
-    std::mem::forget(result); // prevent Rust from freeing it
-    return result_ptr;
+
+    let json_string = serde_json::to_string(&return_result).unwrap();
+    let result = CString::new(json_string).unwrap();
+    return result.into_raw();
 }

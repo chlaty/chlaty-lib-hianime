@@ -9,7 +9,7 @@ fi
 # Define ENV
 NAME="chlaty-lib-hianime"
 REPO="chlaty/chlaty-lib-hianime"
-VERSION="0.1.5"
+VERSION="0.1.6"
 OUTPUT_DIR="artifacts"
 
 
