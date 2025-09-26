@@ -28,7 +28,7 @@ struct ReturnResult {
 
 #[derive(Serialize, Deserialize)]
 struct Arguments {
-    id: String
+    episode_id: String
 }
 
 #[unsafe(no_mangle)]
@@ -51,13 +51,13 @@ pub extern "C" fn get_episode_server(
     }
 
     let mut args: Arguments = Arguments { 
-        id: String::from("") 
+        episode_id: String::from("") 
     };
     if valid_arguments {
         unsafe { 
             match from_str::<Arguments>(&CStr::from_ptr(arguments_ptr as *mut c_char).to_string_lossy().into_owned()) {
                 Ok(result) => {
-                    args.id = result.id
+                    args.episode_id = result.episode_id
                 },
                 Err(e) => {
                     return_result.message = String::from(e.to_string());
@@ -70,7 +70,7 @@ pub extern "C" fn get_episode_server(
 
     if valid_arguments {
 
-        let id = args.id;
+        let episode_id = args.episode_id;
 
         let client = reqwest::blocking::Client::new();
         let mut headers = HeaderMap::new();
@@ -79,7 +79,7 @@ pub extern "C" fn get_episode_server(
 
         // https://hianime.to/ajax/v2/episode/servers?episodeId=141568
         let url = format!("https://{}/ajax/v2/episode/servers?episodeId={}", 
-            SOURCE_HOST, encode(&id)
+            SOURCE_HOST, encode(&episode_id)
         );
         
         let res = client.get(&url).headers(headers).send().unwrap();
