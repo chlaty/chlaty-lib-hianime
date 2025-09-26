@@ -5,24 +5,24 @@ mod tests {
     use serde_json::{json, to_string};
     use crate::free_ptr::free_ptr;
 
-    use crate::search::search;
+    // use crate::search::search;
 
-    #[test]
-    fn test_2() {
-        unsafe {
-            let args = CString::new(to_string(&json!({
-                "search": String::from("ubel"),
-                "page": 1
-            })).unwrap()).expect("CString::new failed");
+    // #[test]
+    // fn test_2() {
+    //     unsafe {
+    //         let args = CString::new(to_string(&json!({
+    //             "search": String::from("ubel"),
+    //             "page": 1
+    //         })).unwrap()).expect("CString::new failed");
             
-            let search_ptr = search(args.as_ptr());
-            let result = CStr::from_ptr(search_ptr).to_str().unwrap();
+    //         let search_ptr = search(args.as_ptr());
+    //         let result = CStr::from_ptr(search_ptr).to_str().unwrap();
 
-            free_ptr(search_ptr as *mut c_char);
+    //         free_ptr(search_ptr as *mut c_char);
 
-            println!("{}", &result);
-        }
-    }
+    //         println!("{}", &result);
+    //     }
+    // }
 
     // use crate::get_episode_list::get_episode_list;
     // #[test]
@@ -38,19 +38,19 @@ mod tests {
     // }
 
 
-    // use crate::get_episode_server::get_episode_server;
+    use crate::get_episode_server::get_episode_server;
 
-    // #[test]
-    // fn test_4() {
-    //     unsafe {
-    //         let args = CString::new(to_string(&json!({
-    //             "id": "141568".to_string(),
-    //         })).unwrap()).expect("CString::new failed");
-    //         let get_episode_ptr = get_episode_server(args.as_ptr());
-    //         let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
-    //         println!("{}", &result);
-    //     }
-    // }
+    #[test]
+    fn test_4() {
+        unsafe {
+            let args = CString::new(to_string(&json!({
+                "episode_id": "141568".to_string(),
+            })).unwrap()).expect("CString::new failed");
+            let get_episode_ptr = get_episode_server(args.as_ptr());
+            let result = CString::from_raw(get_episode_ptr as *mut c_char).into_string().unwrap();
+            println!("{}", &result);
+        }
+    }
 
     // use crate::get_server::get_server;
 
