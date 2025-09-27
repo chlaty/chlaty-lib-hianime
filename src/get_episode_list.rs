@@ -90,20 +90,14 @@ pub extern "C" fn get_episode_list(
 
             let mut episode_page_list: Vec<Vec<ReturnData>> = Vec::new();
 
+            let mut ep_index:usize = 0;
+
             for ep_page_ele in root.find(".ss-list") {
                 let mut episode_per_page: Vec<ReturnData> = Vec::new();
                 let ep_page_node = Vis::dom(&ep_page_ele);
 
-                for ep_ele in ep_page_node.find(".ssl-item ")  {
+                for ep_ele in ep_page_node.find(".ssl-item ") {
                     let ep_node = Vis::dom(&ep_ele);
-
-                    let mut index:usize = 0;
-                    match ep_node.attr("data-number") {
-                        Some(result) => {
-                            index = result.to_string().parse().unwrap();
-                        },
-                        None => {}
-                    }
 
                     let mut id = String::from("");
                     match ep_node.attr("data-id") {
@@ -122,10 +116,12 @@ pub extern "C" fn get_episode_list(
                     }
                 
                     episode_per_page.push(ReturnData {
-                        index,
+                        index: ep_index,
                         id,
                         title,
                     });
+
+                    ep_index += 1;
                 }
 
                 episode_page_list.push(episode_per_page);
