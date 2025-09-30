@@ -15,6 +15,7 @@ use crate::{ SOURCE_HOST, SOURCE_REFERER};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ReturnData{
+    index: usize,
     id: String,
     title: String
 }
@@ -100,6 +101,10 @@ pub extern "C" fn get_episode_server(
 
                 for server_ele in server_type_node.find(".ps__-list").find(".server-item") {
                     let server_ele_node = Vis::dom(&server_ele);
+                    let server_index = server_ele_node.attr("data-server-id");
+                    if server_index.is_none() {
+                        continue;
+                    }
 
                     let server_id = server_ele_node.attr("data-id");
                     if server_id.is_none() {
@@ -109,6 +114,7 @@ pub extern "C" fn get_episode_server(
                     let server_title = server_ele_node.find("a").text();
 
                     server_list_per_type.push(ReturnData {
+                        index: server_index.unwrap().to_string().parse::<usize>().unwrap(),
                         id: server_id.unwrap().to_string(),
                         title: server_title
                     });
